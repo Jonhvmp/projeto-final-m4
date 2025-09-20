@@ -9,8 +9,12 @@ app.use(express.json()); // Para o servidor entender JSON
 app.use(climateRoutes);
 app.use(deforestationRoutes);
 
+app.get("/", (req,res )=>{
+  res.send("API de Monitoramento Ambiental")
+} )
+
 // Porta do servidor
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
