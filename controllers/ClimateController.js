@@ -1,4 +1,9 @@
 import Climate from '../models/ClimateModel.js';
+import {
+  generateNextId,
+  sendSuccessResponse,
+  validateAndFindItem
+} from '../utils/utils.js';
 
 // Array para armazenar os locais
 let locais = [
@@ -39,17 +44,16 @@ let locais = [
   }
 ];
 
+
 // POST: Cadastrar novo local
 export const createLocal = (req, res) => {
   const { nome, descricao, ano, impacto } = req.body;
 
-  const novoLocal = new Climate(locais.length + 1, nome, descricao, ano, impacto);
+  const nextId = generateNextId(locais);
+  const novoLocal = new Climate(nextId, nome, descricao, ano, impacto);
   locais.push(novoLocal);
 
-  res.status(201).json({
-    message: "Local cadastrado com sucesso!",
-    data: novoLocal
-  });
+  return sendSuccessResponse(res, "Local cadastrado com sucesso!", novoLocal, 201);
 };
 
 // GET: Listar todos os locais
@@ -60,40 +64,44 @@ export const getAllLocais = (req, res) => {
 // GET/:id: Ver local específico
 export const getLocalById = (req, res) => {
   const { id } = req.params;
-  const local = locais.find(l => l.id === parseInt(id));
 
-  if (!local) {
-    return res.status(404).json({ message: "Local não encontrado" });
+  const result = validateAndFindItem(id, locais, "Local");
+  if (!result.success) {
+    return sendErrorResponse(res, result.error);
   }
 
-  res.json(local);
+  res.json(result.item);
 };
 
 // PUT/:id: Atualizar local
 export const updateLocal = (req, res) => {
   const { id } = req.params;
-  const index = locais.findIndex(l => l.id === parseInt(id));
 
-  if (index === -1) {
-    return res.status(404).json({ message: "Local não encontrado" });
+  const result = validateAndFindItem(id, locais, "Local");
+  if (!result.success) {
+    return sendErrorResponse(res, result.error);
   }
 
-  locais[index] = { ...locais[index], ...req.body };
-  res.json({
-    message: "Local atualizado com sucesso!",
-    data: locais[index]
-  });
+  locais[result.index] = {
+    ...locais[result.index],
+    ...req.body,
+    id: result.parsedId // garante que o ID não será alterado
+  };
+
+  return sendSuccessResponse(res, "Local atualizado com sucesso!", locais[result.index]);
 };
 
 // DELETE/:id: Excluir local
 export const deleteLocal = (req, res) => {
   const { id } = req.params;
-  const local = locais.find(l => l.id === parseInt(id));
 
-  if (!local) {
-    return res.status(404).json({ message: "Local não encontrado" });
+  const result = validateAndFindItem(id, locais, "Local");
+  if (!result.success) {
+    return sendErrorResponse(res, result.error);
   }
 
-  locais = locais.filter(l => l.id !== parseInt(id));
-  res.json({ message: "Local excluído com sucesso!" });
+  // remove local
+  locais = locais.filter(l => l.id !== result.parsedId);
+
+  return sendSuccessResponse(res, "Local excluído com sucesso!");
 };
